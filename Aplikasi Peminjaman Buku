@@ -1,0 +1,246 @@
+import tkinter as tk
+from tkinter import messagebox
+from datetime import datetime
+
+class LibraryApp:
+    def _init_(self, root):
+        self.root = root
+        self.root.title("Pusat Peminjaman Buku Perpustakaan PTI")
+        self.root.geometry("1000x600")
+        self.root.resizable(True, True)  # Window bisa diperbesar/diperkecil
+
+        # Data buku
+        self.book_stock = {
+            "1.  Buku Pemrograman Web": 5,
+            "2.  Buku Statistika Proabilitas": 3,
+            "3.  Buku Pengolahan Data Elektrik": 4,
+            "4.  Buku Toefl Preparation": 2,
+            "5.  Buku Pemrograman Visual": 6,
+            "6.  Buku Pengantar Teknik Informasi": 4,
+            "7.  Buku Manajemen Kurikulum": 3,
+            "8.  Buku Sistem Pengoperasian Komputer": 5,
+            "9.  Buku Sejarah Teknologi di Indonesia": 3,
+            "10. Buku Si kancil Yang Bijak": 4,
+            "11. Buku Metodologi Penelitian": 5,
+            "12. Buku Tutorial Menggunakan Aplikasi Coohom": 2,
+            "13. Buku Penerapan Conten Creator": 3,
+            "14. Buku Tenggelamnya Kapal VanDerWicjk": 2,
+            "15. Buku Filosofi Teras": 4,
+            "16. Buku Max Havealer": 3,
+            "17. Buku Sang Pemimpi": 4,
+            "18. Buku Seni Bersikap Bodo Amat": 5,
+            "19. Buku Catatan Sang Demonstran": 3,
+            "20. Buku The Power Of Habit": 6,
+            "21. Buku Deep Work": 5,
+            "22. Buku How To Be a Person": 3,
+            "23. Buku Ronggeng Dukuh Paruk": 4,
+            "24. Buku pengembangan diri": 5,
+            "25. Buku Self Help": 3,
+            "26. Buku Sejuta Cara Sukses": 4,
+            "27. Buku Bunga Untuk Kekasih": 2,
+            "28. Buku Cahaya Rebulan Malam": 3,
+            "29. Buku Kisah Malin Kundang": 4,
+            "30. Buku Siapa Yang Tau": 3,
+            "31. Buku Dibatas Kota Ini": 2,
+            "32. Buku Penelitian komputer": 4,
+            "33. Buku analisis data": 3,
+            "34. Buku terkutuknya desa penari": 2,
+            "35. Buku Panduan Penulisan Karya Ilmiah": 5
+        }
+        self.books_available = self.book_stock.copy()
+        self.borrow_dates = {}
+        self.return_dates = {}
+
+        # Frame utama
+        self.frame = tk.Frame(self.root, padx=20, pady=20)
+        self.frame.pack(fill=tk.BOTH, expand=True)
+
+        # Judul aplikasi
+        self.title_label = tk.Label(self.frame, text="Daftar Buku Perpustakaan", font=("Arial", 18, "bold"))
+        self.title_label.pack(pady=(0, 15))
+
+        # Input nama peminjam
+        self.name_frame = tk.Frame(self.frame)
+        self.name_frame.pack(pady=(0, 10), fill=tk.X)
+        self.name_label = tk.Label(self.name_frame, text="Nama Peminjam:", font=("Arial", 12))
+        self.name_label.pack(side=tk.LEFT)
+        self.name_entry = tk.Entry(self.name_frame, width=30, font=("Arial", 12))
+        self.name_entry.pack(side=tk.LEFT, padx=10)
+
+        # Frame listbox dan scrollbar
+        self.list_frame = tk.Frame(self.frame)
+        self.list_frame.pack()
+        self.scrollbar = tk.Scrollbar(self.list_frame, orient=tk.VERTICAL)
+        self.book_listbox = tk.Listbox(
+            self.list_frame, width=50, height=10, yscrollcommand=self.scrollbar.set,
+            font=("Arial", 12), selectmode=tk.MULTIPLE
+        )
+        self.scrollbar.config(command=self.book_listbox.yview)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.book_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
+        self.update_book_list()
+
+        # Frame input jumlah pinjam
+        self.qty_frame = tk.Frame(self.frame)
+        self.qty_frame.pack(pady=10, fill=tk.X)
+        self.qty_label = tk.Label(self.qty_frame, text="Jumlah Buku Yang Ingin Dipinjam (masukkan satu angka untuk semua buku yang dipilih):", font=("Arial", 12))
+        self.qty_label.pack(side=tk.LEFT)
+        self.qty_entry = tk.Entry(self.qty_frame, width=5, font=("Arial", 12))
+        self.qty_entry.pack(side=tk.LEFT, padx=10)
+        self.qty_entry.insert(0, "1")  # default 1
+
+        # Frame tombol
+        self.button_frame = tk.Frame(self.frame, pady=15)
+        self.button_frame.pack()
+        self.borrow_button = tk.Button(self.button_frame, text="Pinjam Buku", width=15, command=self.borrow_book, bg="#4CAF50", fg="white", font=("Arial", 12, "bold"))
+        self.borrow_button.grid(row=0, column=0, padx=10)
+        self.return_button = tk.Button(self.button_frame, text="Kembalikan Buku", width=15, command=self.return_book, bg="#f44336", fg="white", font=("Arial", 12, "bold"))
+        self.return_button.grid(row=0, column=1, padx=10)
+
+        # Status label
+        self.status_label = tk.Label(self.frame, text="", font=("Arial", 12, "italic"), fg="brown")
+        self.status_label.pack(pady=(5, 0))
+
+        # Frame untuk menampilkan tanggal peminjaman dan pengembalian
+        self.date_frame = tk.Frame(self.frame)
+        self.date_frame.pack(pady=20, fill=tk.X)
+        self.borrow_date_label = tk.Label(self.date_frame, text="Tanggal Peminjaman:\n-", font=("Arial", 12), justify=tk.LEFT, anchor="w")
+        self.borrow_date_label.pack(fill=tk.X)
+        self.return_date_label = tk.Label(self.date_frame, text="Tanggal Pengembalian:\n-", font=("Arial", 12), justify=tk.LEFT, anchor="w")
+        self.return_date_label.pack(fill=tk.X)
+
+        # Bind event untuk update tanggal saat pilih buku
+        self.book_listbox.bind('<<ListboxSelect>>', self.show_dates_for_selection)
+
+    def update_book_list(self):
+        self.book_listbox.delete(0, tk.END)
+        for book, stok in self.book_stock.items():
+            available = self.books_available.get(book, 0)
+            status = f"Tersedia: {available}/{stok}"
+            self.book_listbox.insert(tk.END, f"{book} - {status}")
+
+    def borrow_book(self):
+        selected_indices = self.book_listbox.curselection()
+        if not selected_indices:
+            messagebox.showwarning("Upss...", "Pilih buku yang ingin dipinjam")
+            return
+
+        name = self.name_entry.get().strip()
+        if not name:
+            messagebox.showwarning("Haoo Gess", "Nama peminjam harus diisi ya!")
+            return
+
+        try:
+            qty = int(self.qty_entry.get())
+            if qty <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror("Error", "Masukkan jumlah peminjaman yang valid (angka positif)")
+            return
+
+        borrowed_books = []
+        unavailable_books = []
+
+        for idx in selected_indices:
+            book_info = self.book_listbox.get(idx)
+            book_name = book_info.split(" - ")[0]
+            available = self.books_available.get(book_name, 0)
+
+            if available >= qty:
+                self.books_available[book_name] -= qty
+                borrowed_books.append(f"{book_name} (x{qty})")
+                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.borrow_dates.setdefault(book_name, []).append(f"{now} oleh {name} (x{qty})")
+            else:
+                unavailable_books.append(f"{book_name} (tersisa {available})")
+
+        self.update_book_list()
+        self.show_dates_for_selection()
+
+        if borrowed_books:
+            self.status_label.config(text=f"Berhasil meminjam: {', '.join(borrowed_books)}", fg="brown")
+        if unavailable_books:
+            messagebox.showinfo("Info", f"Buku tidak cukup stok:\n" + "\n".join(unavailable_books))
+
+    def return_book(self):
+        selected_indices = self.book_listbox.curselection()
+        if not selected_indices:
+            messagebox.showwarning("Peringatan", "Pilih buku yang ingin dikembalikan")
+            return
+
+        name = self.name_entry.get().strip()
+        if not name:
+            messagebox.showwarning("Peringatan", "Nama peminjam harus diisi!")
+            return
+
+        try:
+            qty = int(self.qty_entry.get())
+            if qty <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror("Error", "Masukkan jumlah pengembalian yang valid (angka positif)")
+            return
+
+        returned_books = []
+        not_borrowed_books = []
+
+        for idx in selected_indices:
+            book_info = self.book_listbox.get(idx)
+            book_name = book_info.split(" - ")[0]
+            available = self.books_available.get(book_name, 0)
+            stok = self.book_stock.get(book_name, 0)
+            borrowed_qty = stok - available
+
+            if borrowed_qty >= qty:
+                self.books_available[book_name] += qty
+                returned_books.append(f"{book_name} (x{qty})")
+                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.return_dates.setdefault(book_name, []).append(f"{now} oleh {name} (x{qty})")
+            else:
+                not_borrowed_books.append(f"{book_name} (dipinjam {borrowed_qty})")
+
+        self.update_book_list()
+        self.show_dates_for_selection()
+
+        if returned_books:
+            self.status_label.config(text=f"Berhasil mengembalikan: {', '.join(returned_books)}", fg="brown")
+        if not_borrowed_books:
+            messagebox.showinfo("Info", f"Buku berikut belum dipinjam cukup banyak:\n" + "\n".join(not_borrowed_books))
+
+    def show_dates_for_selection(self, event=None):
+        selected_indices = self.book_listbox.curselection()
+        if not selected_indices:
+            self.borrow_date_label.config(text="Tanggal Peminjaman:\n-")
+            self.return_date_label.config(text="Tanggal Pengembalian:\n-")
+            return
+
+        borrow_texts = []
+        return_texts = []
+
+        for idx in selected_indices:
+            book_info = self.book_listbox.get(idx)
+            book_name = book_info.split(" - ")[0]
+
+            borrows = self.borrow_dates.get(book_name, [])
+            returns = self.return_dates.get(book_name, [])
+
+            borrow_texts.append(f"{book_name}:")
+            if borrows:
+                borrow_texts.extend([f"  - {d}" for d in borrows])
+            else:
+                borrow_texts.append("  - Tidak ada data peminjaman")
+
+            return_texts.append(f"{book_name}:")
+            if returns:
+                return_texts.extend([f"  - {d}" for d in returns])
+            else:
+                return_texts.append("  - Tidak ada data pengembalian")
+
+        self.borrow_date_label.config(text="Tanggal Peminjaman:\n" + "\n".join(borrow_texts))
+        self.return_date_label.config(text="Tanggal Pengembalian:\n" + "\n".join(return_texts))
+
+
+if _name_ == "_main_":
+    root = tk.Tk()
+    app = LibraryApp(root)
+    root.mainloop()
